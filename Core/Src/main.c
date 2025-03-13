@@ -43,6 +43,16 @@
 TIM_HandleTypeDef htim2;
 
 /* USER CODE BEGIN PV */
+#define NUMS_LED 8 //Number of LEDs
+#define NUMS_BITS_DATA 4
+
+uint8_t startStatus = 0; // Start Status Variable
+uint8_t datStatus = 0; // DAT Status Variable
+uint8_t modStatus = 0; // MOD Status Variable
+uint8_t pregStatus = 0; // PREG Status Variable
+uint8_t ledData[NUMS_LED]; // Array for storing LED Status
+uint8_t dataArr[NUMS_BITS_DATA]; // Array used for storing data for transmissions
+
 
 /* USER CODE END PV */
 
@@ -51,6 +61,10 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_TIM2_Init(void);
 /* USER CODE BEGIN PFP */
+void sendLED(uint8_t *);
+void ARM_WR_CDA(void);
+void ARM_WR_DATA(void);
+void ARM_RD_DATA(void);
 
 /* USER CODE END PFP */
 
@@ -254,8 +268,65 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-
+/*
+ * Check if startStatus || datStaus
+ */
 void TIM2_CallBack(void){
+	if (startStatus){
+		startStatus ^= 1;
+
+		sendLED(ledData);
+		while(!startStatus){
+			continue;
+		}
+
+		ARM_WR_CDA();
+		startStatus ^= 1;
+	}else if (datStatus){
+		datStatus ^= 1;
+
+		sendLED(ledData);
+		while (!datStatus){
+			continue ;
+		}
+
+		if (modStatus){
+			ARM_WR_DATA();
+		}else{
+			ARM_RD_DATA();
+		}
+	}
+}
+
+/*
+ * Update led based on ledData array
+*/
+void sendLED(uint8_t * ledData){
+return ;
+}
+
+/*
+ * Write CDA = 2 * PRG + MOD;
+ */
+void ARM_WR_CDA(void){
+	// CDA = 2 * pregStatus + modStatus;
+
+
+	return ;
+}
+
+/*
+ *
+ */
+void ARM_WR_DATA(void){
+
+	return ;
+}
+
+/*
+ *
+ */
+void ARM_RD_DATA(void){
 	return ;
 }
 
