@@ -107,6 +107,7 @@ void Error_Handler(void);
 #define PREG_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
+void TIM2_CallBack(void);
 
 /* USER CODE END Private defines */
 

@@ -57,6 +57,7 @@ static void MX_TIM2_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+
 /* USER CODE END 0 */
 
 /**
@@ -76,6 +77,7 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
+  HAL_TIM_Base_Start_IT(&htim2); // Init Tim2 Instance
 
   /* USER CODE END Init */
 
@@ -252,6 +254,10 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+
+void TIM2_CallBack(void){
+	return ;
+}
 
 /* USER CODE END 4 */
 
