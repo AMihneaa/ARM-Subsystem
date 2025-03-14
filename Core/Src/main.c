@@ -46,6 +46,12 @@ TIM_HandleTypeDef htim2;
 #define NUMS_LED 8 //Number of LEDs
 #define NUMS_BITS_DATA 4
 
+#define BUTTONS_PINS   {INPUT_DATA0_Pin, INPUT_DATA1_Pin, INPUT_DATA2_Pin, INPUT_DATA3_Pin}
+#define BUTTONS_PORTS  {INPUT_DATA0_GPIO_Port, INPUT_DATA1_GPIO_Port, INPUT_DATA2_GPIO_Port, INPUT_DATA3_GPIO_Port}
+
+#define DATA_PINS   {DATA0_Pin, DATA1_Pin, DATA2_Pin, DATA3_Pin}
+#define DATA_PORTS  {DATA0_GPIO_Port, DATA1_GPIO_Port, DATA2_GPIO_Port, DATA3_GPIO_Port}
+
 // LED Pins
 #define LED_PINS {LED_MOD_Pin, LED_PREG_Pin, LED_DAT_Pin, LED_START_Pin, LED_DATA0_Pin, LED_DATA1_Pin, LED_DATA2_Pin, LED_DATA3_Pin}
 
@@ -77,6 +83,9 @@ void ARM_WR_DATA(void);
 void ARM_RD_DATA(void);
 void RD_CDA(void);
 void WR_CDA(void);
+void SEND_DATA(void);
+void readButtonData(void);
+void READ_DATA(void);
 
 /* USER CODE END PFP */
 
@@ -489,6 +498,61 @@ void WR_CDA(void){
 
 	HAL_Delay(100);
 }
+
+/*
+ * @brief Reads data from buttons pins and returns a 4-bit value.
+ */
+void readButtonData(void){
+	uint16_t btn_pins[] = BUTTONS_PINS;
+	GPIO_TypeDef *btn_ports[] = BUTTONS_PORTS;
+
+	for (int i = 0; i < NUMS_BITS_DATA; i++){
+		*(dataArr + i) = HAL_GPIO_ReadPin(*(btn_ports + i), *(btn_pins + i));
+	}
+	HAL_Delay(100);
+}
+
+/*
+ * @brief Configures DATA pins as output and writes data from `dataArr[]`
+ */
+void SEND_DATA(void){
+	GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+	uint16_t data_pins[] = DATA_PINS;
+	GPIO_TypeDef* data_ports[] = DATA_PORTS;
+
+	GPIO_InitStruct.Pin = DATA0_Pin | DATA1_Pin | DATA2_Pin | DATA3_Pin;
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+	HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+   for (int i = 0; i < NUMS_BITS_DATA; i++) {
+		HAL_GPIO_WritePin(*(data_ports + i), * (data_pins + i), (dataArr[i] ? GPIO_PIN_SET : GPIO_PIN_RESET));
+	}
+
+   HAL_Delay(100);
+}
+
+/*
+ * @brief Configures DATA pins as input and reads values into `dataArr[]`
+ */
+void READ_DATA(void){
+	GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+	uint16_t data_pins[] = DATA_PINS;
+	GPIO_TypeDef* data_ports[] = DATA_PORTS;
+
+	GPIO_InitStruct.Pin = DATA0_Pin | DATA1_Pin | DATA2_Pin | DATA3_Pin;
+	GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+	for (int i = 0; i < NUMS_BITS_DATA; i++) {
+		*(dataArr + i) = HAL_GPIO_ReadPin(*(data_ports + i), *(data_pins + i));
+	}
+}
+
 /* USER CODE END 4 */
 
 /**
