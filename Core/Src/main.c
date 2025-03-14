@@ -377,19 +377,36 @@ void EXTI_Init(void) {
 }
 
 void Start_Button_Pressed(void){
-	return ;
+	HAL_DELAY(10);
+	/*
+	 * Check if the button was intentionally press
+	 * startStatus = 1 << 0
+	 * startStatys = 1 << 1 = 2
+	 */
+	if (HAL_GPIO_ReadPin(START_GPIO_PORT, START_Pin) == GPIO_PIN_SET){
+		startStatus = 1 << startStatus;
+	}
+
 }
 
 void Dat_Button_Pressed(void){
-	return ;
+	HAL_DELAY(10);
+
+	/*
+	 * Check if the button was intentionally press
+	 */
+	if (HAL_GPIO_ReadPin(DAT_GPIO_PORT, DAT_Pin) == GPIO_PIN_SET){
+		datStatus = 1 << datStatus;
+	}
+
 }
 
 void Preg_Button_Pressed(void){
-	return ;
+	pregStatus ^= 1;
 }
 
 void Mod_Button_Pressed(void){
-	return ;
+	modStatus ^= 1;
 }
 
 /* USER CODE END 4 */
