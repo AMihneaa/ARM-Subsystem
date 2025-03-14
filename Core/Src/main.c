@@ -67,7 +67,7 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_TIM2_Init(void);
 /* USER CODE BEGIN PFP */
-void EXTI_INIT(void);
+void EXTI_Init();
 
 void sendLED(void);
 void updateLedData(uint16_t, uint8_t);
@@ -405,25 +405,25 @@ void EXTI_Init(void) {
 }
 
 void Start_Button_Pressed(void){
-	HAL_DELAY(10);
+	HAL_Delay(10);
 	/*
 	 * Check if the button was intentionally press
 	 * startStatus = 1 << 0
 	 * startStatys = 1 << 1 = 2
 	 */
-	if (HAL_GPIO_ReadPin(START_GPIO_PORT, START_Pin) == GPIO_PIN_SET){
+	if (HAL_GPIO_ReadPin(START_GPIO_Port, START_Pin) == GPIO_PIN_SET){
 		startStatus = 1 << startStatus;
 	}
 
 }
 
 void Dat_Button_Pressed(void){
-	HAL_DELAY(10);
+	HAL_Delay(10);
 
 	/*
 	 * Check if the button was intentionally press
 	 */
-	if (HAL_GPIO_ReadPin(DAT_GPIO_PORT, DAT_Pin) == GPIO_PIN_SET){
+	if (HAL_GPIO_ReadPin(DAT_GPIO_Port, DAT_Pin) == GPIO_PIN_SET){
 		datStatus = 1 << datStatus;
 	}
 
