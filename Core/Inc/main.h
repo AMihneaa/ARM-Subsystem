@@ -108,6 +108,10 @@ void Error_Handler(void);
 
 /* USER CODE BEGIN Private defines */
 void TIM2_CallBack(void);
+void Start_Button_Pressed(void);
+void Dat_Button_Pressed(void);
+void Preg_Button_Pressed(void);
+void Mod_Button_Pressed(void);
 
 /* USER CODE END Private defines */
 
