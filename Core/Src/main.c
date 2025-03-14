@@ -86,6 +86,7 @@ void WR_CDA(void);
 void SEND_DATA(void);
 void readButtonData(void);
 void READ_DATA(void);
+void setPinMode(uint16_t *dataPins, GPIO_TypeDef **dataPorts, uint8_t numPins, uint32_t mode);
 
 /* USER CODE END PFP */
 
@@ -516,16 +517,10 @@ void readButtonData(void){
  * @brief Configures DATA pins as output and writes data from `dataArr[]`
  */
 void SEND_DATA(void){
-	GPIO_InitTypeDef GPIO_InitStruct = {0};
-
 	uint16_t data_pins[] = DATA_PINS;
 	GPIO_TypeDef* data_ports[] = DATA_PORTS;
 
-	GPIO_InitStruct.Pin = DATA0_Pin | DATA1_Pin | DATA2_Pin | DATA3_Pin;
-	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-	GPIO_InitStruct.Pull = GPIO_NOPULL;
-	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-	HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+	setPinMode(data_pins, data_ports, NUMS_BITS_DATA, GPIO_MODE_OUTPUT_PP);
 
    for (int i = 0; i < NUMS_BITS_DATA; i++) {
 		HAL_GPIO_WritePin(*(data_ports + i), * (data_pins + i), (dataArr[i] ? GPIO_PIN_SET : GPIO_PIN_RESET));
@@ -538,20 +533,37 @@ void SEND_DATA(void){
  * @brief Configures DATA pins as input and reads values into `dataArr[]`
  */
 void READ_DATA(void){
-	GPIO_InitTypeDef GPIO_InitStruct = {0};
-
 	uint16_t data_pins[] = DATA_PINS;
 	GPIO_TypeDef* data_ports[] = DATA_PORTS;
 
-	GPIO_InitStruct.Pin = DATA0_Pin | DATA1_Pin | DATA2_Pin | DATA3_Pin;
-	GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-	GPIO_InitStruct.Pull = GPIO_NOPULL;
-	HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+	setPinMode(data_pins, data_ports, NUMS_BITS_DATA, GPIO_MODE_INPUT);
 
 	for (int i = 0; i < NUMS_BITS_DATA; i++) {
 		*(dataArr + i) = HAL_GPIO_ReadPin(*(data_ports + i), *(data_pins + i));
 	}
 }
+
+/*
+ * @brief Configures multiple GPIO pins to a specified mode.
+ * @param dataPins: Array of GPIO pins.
+ * @param dataPorts: Array of corresponding GPIO ports.
+ * @param numPins: Number of pins in the array.
+ * @param mode: GPIO mode (e.g., GPIO_MODE_INPUT, GPIO_MODE_OUTPUT_PP).
+ */
+void setPinMode(uint16_t *dataPins, GPIO_TypeDef **dataPorts, uint8_t numPins, uint32_t mode) {
+    GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+    for (int i = 0; i < numPins; i++) {
+        GPIO_InitStruct.Pin = dataPins[i];
+        GPIO_InitStruct.Mode = mode; // Dynamic mode (INPUT, OUTPUT, etc.)
+        GPIO_InitStruct.Pull = GPIO_NOPULL;
+        GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+
+        HAL_GPIO_Init(dataPorts[i], &GPIO_InitStruct);
+    }
+}
+
+
 
 /* USER CODE END 4 */
 
