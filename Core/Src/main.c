@@ -61,6 +61,8 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_TIM2_Init(void);
 /* USER CODE BEGIN PFP */
+void EXTI_INIT(void);
+
 void sendLED(uint8_t *);
 void ARM_WR_CDA(void);
 void ARM_WR_DATA(void);
@@ -272,22 +274,22 @@ static void MX_GPIO_Init(void)
  * Check if startStatus || datStaus
  */
 void TIM2_CallBack(void){
-	if (startStatus){
-		startStatus ^= 1;
+	if ((startStatus & 1) | (start & (1 << 1))){
+		if (startStatus == 1){
+			sendLED(ledData);
+			startStatus = 1 << 1;
 
-		sendLED(ledData);
-		while(!startStatus){
-			continue;
+			return ;
 		}
 
 		ARM_WR_CDA();
-		startStatus ^= 1;
-	}else if (datStatus){
-		datStatus ^= 1;
+		startStatus = 0;
+	}else if ((datStatus & 1) | (datStatus & (1 << 1))){
+		if (datStatus == 1){
+			sendLED(ledData);
+			datStatus = 1 << 1;
 
-		sendLED(ledData);
-		while (!datStatus){
-			continue ;
+			return ;
 		}
 
 		if (modStatus){
