@@ -108,6 +108,7 @@ int main(void)
   MX_GPIO_Init();
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
+  EXTI_Init();
 
   /* USER CODE END 2 */
 
@@ -274,7 +275,7 @@ static void MX_GPIO_Init(void)
  * Check if startStatus || datStaus
  */
 void TIM2_CallBack(void){
-	if ((startStatus & 1) | (start & (1 << 1))){
+	if ((startStatus & 1) | (startStatus & (1 << 1))){
 		if (startStatus == 1){
 			sendLED(ledData);
 			startStatus = 1 << 1;
@@ -330,6 +331,82 @@ void ARM_WR_DATA(void){
  */
 void ARM_RD_DATA(void){
 	return ;
+}
+
+/*
+ * Enable GPIO IR
+ */
+void EXTI_Init(void) {
+    GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+    // Enable clocks for GPIOA and GPIOB
+    __HAL_RCC_GPIOA_CLK_ENABLE();
+    __HAL_RCC_GPIOB_CLK_ENABLE();
+
+    // Define Pins & Ports Arrays
+    uint16_t exti_pins[] = {START_Pin, DAT_Pin, PREG_Pin, MOD_Pin};
+    GPIO_TypeDef* exti_ports[] = {START_GPIO_Port, DAT_GPIO_Port, PREG_GPIO_Port, MOD_GPIO_Port};
+
+    // Configure
+
+    //Setting up port for Rising Only Interrupt
+    for (int i = 0; i < 2; i++){
+    	GPIO_InitStruct.Pin = *(exti_pins + i);
+    	GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+    	GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+    	HAL_GPIO_Init(*(exti_ports + i), &GPIO_InitStruct);
+    }
+
+    // Setting up port for Rising & Falling Interrupt
+    for (int i = 2; i < 4; i++){
+    	GPIO_InitStruct.Pin = *(exti_pins + i); //Alternative for exti_pins[i]
+    	GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
+    	GPIO_InitStruct.Pull = GPIO_NOPULL;
+    	HAL_GPIO_Init(*(exti_ports + i), &GPIO_InitStruct); //Alternative for exti_ports[i]
+    }
+
+    // Enable NVIC for the corresponding EXTI lines
+    HAL_NVIC_SetPriority(EXTI0_IRQn, 2, 0);
+    HAL_NVIC_EnableIRQ(EXTI0_IRQn);
+
+    HAL_NVIC_SetPriority(EXTI1_IRQn, 2, 0);
+    HAL_NVIC_EnableIRQ(EXTI1_IRQn);
+
+    HAL_NVIC_SetPriority(EXTI9_5_IRQn, 2, 0);
+    HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
+}
+
+void Start_Button_Pressed(void){
+	HAL_DELAY(10);
+	/*
+	 * Check if the button was intentionally press
+	 * startStatus = 1 << 0
+	 * startStatys = 1 << 1 = 2
+	 */
+	if (HAL_GPIO_ReadPin(START_GPIO_PORT, START_Pin) == GPIO_PIN_SET){
+		startStatus = 1 << startStatus;
+	}
+
+}
+
+void Dat_Button_Pressed(void){
+	HAL_DELAY(10);
+
+	/*
+	 * Check if the button was intentionally press
+	 */
+	if (HAL_GPIO_ReadPin(DAT_GPIO_PORT, DAT_Pin) == GPIO_PIN_SET){
+		datStatus = 1 << datStatus;
+	}
+
+}
+
+void Preg_Button_Pressed(void){
+	pregStatus ^= 1;
+}
+
+void Mod_Button_Pressed(void){
+	modStatus ^= 1;
 }
 
 /* USER CODE END 4 */
