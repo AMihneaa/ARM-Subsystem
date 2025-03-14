@@ -46,6 +46,12 @@ TIM_HandleTypeDef htim2;
 #define NUMS_LED 8 //Number of LEDs
 #define NUMS_BITS_DATA 4
 
+// LED Pins
+#define LED_PINS {LED_MOD_Pin, LED_PREG_Pin, LED_DAT_Pin, LED_START_Pin, LED_DATA0_Pin, LED_DATA1_Pin, LED_DATA2_Pin, LED_DATA3_Pin}
+
+// LED Ports
+#define LED_PORTS {LED_MOD_GPIO_Port, LED_PREG_GPIO_Port, LED_DAT_GPIO_Port, LED_START_GPIO_Port, LED_DATA0_GPIO_Port, LED_DATA1_GPIO_Port, LED_DATA2_GPIO_Port, LED_DATA3_GPIO_Port}
+
 uint8_t startStatus = 0; // Start Status Variable
 uint8_t datStatus = 0; // DAT Status Variable
 uint8_t modStatus = 0; // MOD Status Variable
@@ -63,7 +69,8 @@ static void MX_TIM2_Init(void);
 /* USER CODE BEGIN PFP */
 void EXTI_INIT(void);
 
-void sendLED(uint8_t *);
+void sendLED(void);
+void updateLedData(uint16_t, uint8_t);
 void ARM_WR_CDA(void);
 void ARM_WR_DATA(void);
 void ARM_RD_DATA(void);
@@ -277,7 +284,7 @@ static void MX_GPIO_Init(void)
 void TIM2_CallBack(void){
 	if ((startStatus & 1) | (startStatus & (1 << 1))){
 		if (startStatus == 1){
-			sendLED(ledData);
+			sendLED();
 			startStatus = 1 << 1;
 
 			return ;
@@ -287,7 +294,7 @@ void TIM2_CallBack(void){
 		startStatus = 0;
 	}else if ((datStatus & 1) | (datStatus & (1 << 1))){
 		if (datStatus == 1){
-			sendLED(ledData);
+			sendLED();
 			datStatus = 1 << 1;
 
 			return ;
@@ -302,10 +309,31 @@ void TIM2_CallBack(void){
 }
 
 /*
- * Update led based on ledData array
+ * SET/RESET led based on ledData array
 */
-void sendLED(uint8_t * ledData){
-return ;
+void sendLED(void){
+    uint16_t led_pins[] = LED_PINS;
+    GPIO_TypeDef* led_ports[] = LED_PORTS;
+
+    for (int i = 0; i < NUMS_LED; i++) {
+           HAL_GPIO_WritePin(*(led_ports + i), *(led_pins + i), *(ledData + i) != 0 ? GPIO_PIN_SET : GPIO_PIN_RESET);
+   }
+}
+
+/*
+ * @brief Updates the `ledData[]` array for a specific LED pin.
+ * @param pin: The LED pin to modify.
+ * @param state: The new state (1 = ON, 0 = OFF).
+ */
+void updateLedData(uint16_t pin, uint8_t state){
+	uint16_t led_pins[] = LED_PINS;
+
+	for(int i = 0; i < NUMS_LED; i++){
+		if (pin == *(led_pins + i)){
+			*(ledData + i) = state;
+			break;
+		}
+	}
 }
 
 /*
