@@ -58,6 +58,7 @@ uint8_t modStatus = 0; // MOD Status Variable
 uint8_t pregStatus = 0; // PREG Status Variable
 uint8_t ledData[NUMS_LED]; // Array for storing LED Status
 uint8_t dataArr[NUMS_BITS_DATA]; // Array used for storing data for transmissions
+uint8_t cdaStatus = 0; // (CDA & 1) Status for CDA0_Pin and (CDA & (1 << 1)) Status for CDA1_Pin
 
 
 /* USER CODE END PV */
@@ -74,6 +75,8 @@ void updateLedData(uint16_t, uint8_t);
 void ARM_WR_CDA(void);
 void ARM_WR_DATA(void);
 void ARM_RD_DATA(void);
+void RD_CDA(void);
+void WR_CDA(void);
 
 /* USER CODE END PFP */
 
@@ -316,7 +319,7 @@ void sendLED(void){
     GPIO_TypeDef* led_ports[] = LED_PORTS;
 
     for (int i = 0; i < NUMS_LED; i++) {
-           HAL_GPIO_WritePin(*(led_ports + i), *(led_pins + i), *(ledData + i) != 0 ? GPIO_PIN_SET : GPIO_PIN_RESET);
+           HAL_GPIO_WritePin(*(led_ports + i), *(led_pins + i), (*(ledData + i) & 1) != 0 ? GPIO_PIN_SET : GPIO_PIN_RESET);
    }
 }
 
@@ -341,6 +344,8 @@ void updateLedData(uint16_t pin, uint8_t state){
  */
 void ARM_WR_CDA(void){
 	// CDA = 2 * pregStatus + modStatus;
+	cdaStatus = 2 * pregStatus + modStatus;
+	WR_CDA();
 
 
 	return ;
@@ -367,9 +372,9 @@ void ARM_RD_DATA(void){
 void EXTI_Init(void) {
     GPIO_InitTypeDef GPIO_InitStruct = {0};
 
-    // Enable clocks for GPIOA and GPIOB
-    __HAL_RCC_GPIOA_CLK_ENABLE();
-    __HAL_RCC_GPIOB_CLK_ENABLE();
+    // Enable clocks for GPIOA and GPIOB (Already enabled in MX_GPIO_Init )
+//    __HAL_RCC_GPIOA_CLK_ENABLE();
+//    __HAL_RCC_GPIOB_CLK_ENABLE();
 
     // Define Pins & Ports Arrays
     uint16_t exti_pins[] = {START_Pin, DAT_Pin, PREG_Pin, MOD_Pin};
@@ -413,6 +418,7 @@ void Start_Button_Pressed(void){
 	 */
 	if (HAL_GPIO_ReadPin(START_GPIO_Port, START_Pin) == GPIO_PIN_SET){
 		startStatus = 1 << startStatus;
+		updateLedData(LED_START_Pin, (1 & startStatus));
 	}
 
 }
@@ -425,18 +431,64 @@ void Dat_Button_Pressed(void){
 	 */
 	if (HAL_GPIO_ReadPin(DAT_GPIO_Port, DAT_Pin) == GPIO_PIN_SET){
 		datStatus = 1 << datStatus;
+		updateLedData(LED_DAT_Pin, (1 & datStatus));
 	}
 
 }
 
 void Preg_Button_Pressed(void){
 	pregStatus ^= 1;
+	updateLedData(LED_PREG_Pin, pregStatus);
 }
 
 void Mod_Button_Pressed(void){
 	modStatus ^= 1;
+	updateLedData(LED_MOD_Pin, modStatus);
 }
 
+/*
+ * @brief Reads data from CDA0 and CDA1 pins.
+ * @details Configures the pins as input, reads their states, and stores values.
+ */
+void RD_CDA(void){
+		GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+	    // Configure CDA0 and CDA1 as INPUT mode
+	    GPIO_InitStruct.Pin = CDA0_Pin | CDA1_Pin;
+	    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+	    GPIO_InitStruct.Pull = GPIO_NOPULL;
+	    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+	    // Read pin states
+	    uint8_t cda0_state = HAL_GPIO_ReadPin(CDA0_GPIO_Port, CDA0_Pin);
+	    uint8_t cda1_state = HAL_GPIO_ReadPin(CDA1_GPIO_Port, CDA1_Pin);
+
+	    // Store or process the received data (modify as needed)
+	    cdaStatus = (cda1_state << 1) | cda0_state;
+}
+
+/*
+ * @brief Writes data to CDA0 and CDA1 pins.
+ * @details cdaStatus: 2-bit value to send (0-3)
+ *        - 00 (0) -> Both Low
+ *        - 01 (1) -> CDA0 High, CDA1 Low
+ *        - 10 (2) -> CDA0 Low, CDA1 High
+ *        - 11 (3) -> Both High
+ */
+void WR_CDA(void){
+	GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+	GPIO_InitStruct.Pin = CDA0_Pin | CDA1_Pin;
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+	HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+	HAL_GPIO_WritePin(CDA0_GPIO_Port, CDA0_Pin, (cdaStatus & 0x01) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(CDA1_GPIO_Port, CDA1_Pin, (cdaStatus & 0x02) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+
+	HAL_Delay(100);
+}
 /* USER CODE END 4 */
 
 /**
