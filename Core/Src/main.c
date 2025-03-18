@@ -377,7 +377,7 @@ void ARM_WR_CDA(void){
 	HAL_GPIO_WritePin(CLK_GPIO_Port, CLK_Pin, GPIO_PIN_SET);
 	HAL_Delay(100);
 
-	while (HAL_GPIO_ReadPin(ACK_GPIO_Port, ACK_Pin) == RESET){
+	while (HAL_GPIO_ReadPin(ACK_GPIO_Port, ACK_Pin) == GPIO_PIN_RESET){
 		continue;
 	}
 }
@@ -407,7 +407,7 @@ void ARM_WR_DATA(void){
 	HAL_GPIO_WritePin(CLK_GPIO_Port, CLK_Pin, GPIO_PIN_SET);
 	HAL_Delay(100);
 
-	while (HAL_GPIO_ReadPin(ACK_GPIO_Port, ACK_Pin) == RESET){
+	while (HAL_GPIO_ReadPin(ACK_GPIO_Port, ACK_Pin) == GPIO_PIN_RESET){
 		continue;
 	}
 }
