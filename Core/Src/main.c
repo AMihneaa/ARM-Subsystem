@@ -377,8 +377,8 @@ void ARM_WR_CDA(void){
 	HAL_GPIO_WritePin(CLK_GPIO_Port, CLK_Pin, GPIO_PIN_SET);
 	HAL_Delay(100);
 
-	while (HAL_GPIO_ReadPin(ACK_GPIO_Port, ACK_Pin) == GPIO_PIN_RESET){
-		continue;
+	while (HAL_GPIO_ReadPin(ACK_GPIO_Port, ACK_Pin) != GPIO_PIN_RESET){
+		HAL_Delay(100);
 	}
 }
 
@@ -407,8 +407,8 @@ void ARM_WR_DATA(void){
 	HAL_GPIO_WritePin(CLK_GPIO_Port, CLK_Pin, GPIO_PIN_SET);
 	HAL_Delay(100);
 
-	while (HAL_GPIO_ReadPin(ACK_GPIO_Port, ACK_Pin) == GPIO_PIN_RESET){
-		continue;
+	while (HAL_GPIO_ReadPin(ACK_GPIO_Port, ACK_Pin) != GPIO_PIN_RESET){
+		HAL_Delay(100);
 	}
 }
 
@@ -416,7 +416,25 @@ void ARM_WR_DATA(void){
  *
  */
 void ARM_RD_DATA(void){
-	return ;
+	GPIO_InitTypeDef GPIO_InitStruct = {0};
+	GPIO_InitStruct.Pin = ACK_Pin;
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+	HAL_GPIO_Init(ACK_GPIO_Port, &GPIO_InitStruct);
+
+    GPIO_InitStruct.Pin = CLK_Pin;
+    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    HAL_GPIO_Init(CLK_GPIO_Port, &GPIO_InitStruct);
+
+    HAL_Delay(100);
+
+    while (HAL_GPIO_ReadPin(CLK_GPIO_Port, CLK_Pin) != GPIO_PIN_RESET){
+    	HAL_Delay(100);
+    }
+
+    READ_DATA();
 }
 
 /*
@@ -584,6 +602,8 @@ void READ_DATA(void){
 	for (int i = 0; i < NUMS_BITS_DATA; i++) {
 		*(dataArr + i) = HAL_GPIO_ReadPin(*(data_ports + i), *(data_pins + i));
 	}
+
+	HAL_Delay(100);
 }
 
 /*
