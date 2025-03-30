@@ -328,30 +328,30 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 /*
- * Check if startStatus || datStaus
+ * Check
  */
 void TIM2_CallBack(void){
 	switch(Q){
 		case 0:
 			if (HAL_GPIO_ReadPin(START_GPIO_Port, START_Pin) == GPIO_PIN_SET){
 				Q = 1;
-				startStatus ^= 1;
+				startStatus = 1;
 				updateLedData(LED_START_Pin, (1 & startStatus));
 			}
 
 			if (HAL_GPIO_ReadPin(DAT_GPIO_Port, DAT_Pin) == GPIO_PIN_SET){
 					Q = 3;
-					datStatus ^= 1;
+					datStatus = 1;
 					updateLedData(LED_DAT_Pin, (1 & datStatus));
 			}
 
 			if (HAL_GPIO_ReadPin(PREG_GPIO_Port, PREG_Pin) == GPIO_PIN_SET){
-				pregStatus ^= 1;
+				pregStatus = 1;
 				updateLedData(LED_PREG_Pin, pregStatus);
 			}
 
 			if (HAL_GPIO_ReadPin(MOD_GPIO_Port, MOD_Pin) == GPIO_PIN_SET){
-				modStatus ^= 1;
+				modStatus = 1;
 				updateLedData(LED_MOD_Pin, modStatus);
 			}
 			sendLED();
@@ -514,6 +514,9 @@ void TIM2_CallBack(void){
 			datStatus = 0;
 
 			Q = 0;
+			break;
+		default:
+
 			break;
 	}
 }
