@@ -66,6 +66,8 @@ uint8_t ledData[NUMS_LED]; // Array for storing LED Status
 uint8_t dataArr[NUMS_BITS_DATA]; // Array used for storing data for transmissions
 uint8_t cdaStatus = 0; // (CDA & 1) Status for CDA0_Pin and (CDA & (1 << 1)) Status for CDA1_Pin
 
+uint8_t Q = 0;
+
 
 /* USER CODE END PV */
 
@@ -86,7 +88,7 @@ void WR_CDA(void);
 void SEND_DATA(void);
 void readButtonData(void);
 void READ_DATA(void);
-void setPinMode(uint16_t *dataPins, GPIO_TypeDef **dataPorts, uint8_t numPins, uint32_t mode);
+void setPinMode(uint16_t *, GPIO_TypeDef **, uint8_t , uint32_t);
 
 /* USER CODE END PFP */
 
@@ -128,7 +130,7 @@ int main(void)
   MX_GPIO_Init();
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
-  EXTI_Init();
+//  EXTI_Init();
 
   /* USER CODE END 2 */
 
@@ -191,7 +193,7 @@ void SystemClock_Config(void)
 static void MX_TIM2_Init(void)
 {
 
-	 TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+	 	TIM_ClockConfigTypeDef sClockSourceConfig = {0};
 	    TIM_MasterConfigTypeDef sMasterConfig = {0};
 
 	    htim2.Instance = TIM2;
@@ -295,29 +297,190 @@ static void MX_GPIO_Init(void)
  * Check if startStatus || datStaus
  */
 void TIM2_CallBack(void){
-	if ((startStatus & 1) | (startStatus & (1 << 1))){
-		if (startStatus == 1){
+	switch(Q){
+		case 0:
+			if (HAL_GPIO_ReadPin(START_GPIO_Port, START_Pin) == GPIO_PIN_SET){
+				Q = 1;
+				startStatus ^= 1;
+				updateLedData(LED_START_Pin, (1 & startStatus));
+			}
+
+			if (HAL_GPIO_ReadPin(DAT_GPIO_Port, DAT_Pin) == GPIO_PIN_SET){
+					Q = 3;
+					datStatus ^= 1;
+					updateLedData(LED_DAT_Pin, (1 & datStatus));
+			}
+
+			if (HAL_GPIO_ReadPin(PREG_GPIO_Port, PREG_Pin) == GPIO_PIN_SET){
+				pregStatus ^= 1;
+				updateLedData(LED_PREG_Pin, pregStatus);
+			}
+
+			if (HAL_GPIO_ReadPin(MOD_GPIO_Port, MOD_Pin) == GPIO_PIN_SET){
+				modStatus ^= 1;
+				updateLedData(LED_MOD_Pin, modStatus);
+			}
 			sendLED();
-			startStatus = 1 << 1;
 
-			return ;
-		}
+			break;
+		case 1:
+			if (HAL_GPIO_ReadPin(START_GPIO_Port, START_Pin) == GPIO_PIN_RESET){
+				Q = 2;
+				startStatus ^= 1;
+			}
 
-		ARM_WR_CDA();
-		startStatus = 0;
-	}else if ((datStatus & 1) | (datStatus & (1 << 1))){
-		if (datStatus == 1){
-			sendLED();
-			datStatus = 1 << 1;
+			break;
+		case 2:
+			{
+				GPIO_InitTypeDef GPIO_InitStruct = {0};
+				GPIO_InitStruct.Pin = ACK_Pin;
+				GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+				GPIO_InitStruct.Pull = GPIO_NOPULL;
+				GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+				HAL_GPIO_Init(ACK_GPIO_Port, &GPIO_InitStruct);
 
-			return ;
-		}
+				GPIO_InitStruct.Pin = CLK_Pin;
+				GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+				GPIO_InitStruct.Pull = GPIO_NOPULL;
+				HAL_GPIO_Init(CLK_GPIO_Port, &GPIO_InitStruct);
 
-		if (modStatus){
-			ARM_WR_DATA();
-		}else{
-			ARM_RD_DATA();
-		}
+				uint16_t data_pins[] = DATA_PINS;
+				GPIO_TypeDef* data_ports[] = DATA_PORTS;
+
+				setPinMode(data_pins, data_ports, NUMS_BITS_DATA, GPIO_MODE_OUTPUT_PP);
+
+				Q = 10;
+				break;
+			}
+		case 3:
+			if (HAL_GPIO_ReadPin(DAT_GPIO_Port, DAT_Pin) == GPIO_PIN_RESET){
+					Q = 4;
+					datStatus ^= 1;
+			}
+
+			break;
+		case 4:
+			if (modStatus){
+				Q = 6;
+			}else{
+				Q = 5;
+			}
+		case 5:
+			{
+				GPIO_InitTypeDef GPIO_InitStruct = {0};
+				GPIO_InitStruct.Pin = ACK_Pin;
+				GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+				GPIO_InitStruct.Pull = GPIO_NOPULL;
+				GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+				HAL_GPIO_Init(ACK_GPIO_Port, &GPIO_InitStruct);
+
+				GPIO_InitStruct.Pin = CLK_Pin;
+				GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+				GPIO_InitStruct.Pull = GPIO_NOPULL;
+				HAL_GPIO_Init(CLK_GPIO_Port, &GPIO_InitStruct);
+
+				Q = 30;
+				break;
+			}
+		case 6:
+			{
+				GPIO_InitTypeDef GPIO_InitStruct = {0};
+				GPIO_InitStruct.Pin = ACK_Pin;
+				GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+			    GPIO_InitStruct.Pull = GPIO_NOPULL;
+			    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+				HAL_GPIO_Init(ACK_GPIO_Port, &GPIO_InitStruct);
+
+			    GPIO_InitStruct.Pin = CLK_Pin;
+			    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+			    GPIO_InitStruct.Pull = GPIO_NOPULL;
+			    HAL_GPIO_Init(CLK_GPIO_Port, &GPIO_InitStruct);
+
+				uint16_t data_pins[] = DATA_PINS;
+				GPIO_TypeDef* data_ports[] = DATA_PORTS;
+
+				setPinMode(data_pins, data_ports, NUMS_BITS_DATA, GPIO_MODE_INPUT);
+
+				Q = 60;
+			break;
+			}
+		case 10:
+			cdaStatus = 2 * pregStatus + modStatus;
+
+			Q = 11;
+			break;
+		case 11:
+			WR_CDA();
+			HAL_GPIO_WritePin(CLK_GPIO_Port, CLK_Pin, GPIO_PIN_RESET);
+
+			Q = 12;
+			break;
+		case 12:
+			HAL_GPIO_WritePin(CLK_GPIO_Port, CLK_Pin, GPIO_PIN_SET);
+
+			Q = 13;
+			break;
+		case 13:
+			if (HAL_GPIO_ReadPin(ACK_GPIO_Port, ACK_Pin) != GPIO_PIN_SET){
+				Q = 14;
+			}
+
+			break;
+		case 14:
+			if (HAL_GPIO_ReadPin(ACK_GPIO_Port, ACK_Pin) == GPIO_PIN_SET){
+				startStatus = 0;
+				Q = 0;
+			}
+			break;
+		case 30:
+			readButtonData();
+			SEND_DATA();
+			HAL_GPIO_WritePin(CLK_GPIO_Port, CLK_Pin, GPIO_PIN_RESET);
+
+			Q = 31;
+			break;
+		case 31:
+			HAL_GPIO_WritePin(CLK_GPIO_Port, CLK_Pin, GPIO_PIN_SET);
+
+			Q = 32;
+			break;
+		case 32:
+			if (HAL_GPIO_ReadPin(ACK_GPIO_Port, ACK_Pin) != GPIO_PIN_SET){
+				Q = 33;
+			}
+
+			break;
+		case 33:
+			if (HAL_GPIO_ReadPin(ACK_GPIO_Port, ACK_Pin) != GPIO_PIN_SET){
+				Q = 0;
+				datStatus = 0;
+			}
+
+			break;
+		case 60:
+			if (HAL_GPIO_ReadPin(CLK_GPIO_Port, CLK_Pin) != GPIO_PIN_SET){
+				Q = 61;
+			}
+
+			break;
+		case 61:
+			if (HAL_GPIO_ReadPin(CLK_GPIO_Port, CLK_Pin) == GPIO_PIN_SET){
+				Q = 62;
+			}
+
+			break;
+		case 62:
+			READ_DATA();
+			HAL_GPIO_WritePin(ACK_GPIO_Port, ACK_Pin, GPIO_PIN_RESET);
+
+			Q = 63;
+			break;
+		case 63:
+			HAL_GPIO_WritePin(ACK_GPIO_Port, ACK_Pin, GPIO_PIN_SET);
+			datStatus = 0;
+
+			Q = 0;
+			break;
 	}
 }
 
@@ -350,171 +513,46 @@ void updateLedData(uint16_t pin, uint8_t state){
 }
 
 /*
- * Write CDA = 2 * PRG + MOD;
- */
-void ARM_WR_CDA(void){
-	// CDA = 2 * pregStatus + modStatus;
-	cdaStatus = 2 * pregStatus + modStatus;
-	WR_CDA();
-
-	HAL_Delay(100);
-
-	GPIO_InitTypeDef GPIO_InitStruct = {0};
-	GPIO_InitStruct.Pin = CLK_Pin;
-	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-	HAL_GPIO_Init(CLK_GPIO_Port, &GPIO_InitStruct);
-
-    GPIO_InitStruct.Pin = ACK_Pin;
-    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    HAL_GPIO_Init(ACK_GPIO_Port, &GPIO_InitStruct);
-
-	HAL_GPIO_WritePin(CLK_GPIO_Port, CLK_Pin, GPIO_PIN_RESET);
-	HAL_Delay(100);
-
-	HAL_GPIO_WritePin(CLK_GPIO_Port, CLK_Pin, GPIO_PIN_SET);
-	HAL_Delay(100);
-
-	while (HAL_GPIO_ReadPin(ACK_GPIO_Port, ACK_Pin) != GPIO_PIN_RESET){
-		HAL_Delay(100);
-	}
-}
-
-/*
- *
- */
-void ARM_WR_DATA(void){
-	readButtonData();
-	SEND_DATA();
-
-	GPIO_InitTypeDef GPIO_InitStruct = {0};
-	GPIO_InitStruct.Pin = CLK_Pin;
-	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-	HAL_GPIO_Init(CLK_GPIO_Port, &GPIO_InitStruct);
-
-    GPIO_InitStruct.Pin = ACK_Pin;
-    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    HAL_GPIO_Init(ACK_GPIO_Port, &GPIO_InitStruct);
-
-	HAL_GPIO_WritePin(CLK_GPIO_Port, CLK_Pin, GPIO_PIN_RESET);
-	HAL_Delay(100);
-
-	HAL_GPIO_WritePin(CLK_GPIO_Port, CLK_Pin, GPIO_PIN_SET);
-	HAL_Delay(100);
-
-	while (HAL_GPIO_ReadPin(ACK_GPIO_Port, ACK_Pin) != GPIO_PIN_RESET){
-		HAL_Delay(100);
-	}
-}
-
-/*
- *
- */
-void ARM_RD_DATA(void){
-	GPIO_InitTypeDef GPIO_InitStruct = {0};
-	GPIO_InitStruct.Pin = ACK_Pin;
-	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-	HAL_GPIO_Init(ACK_GPIO_Port, &GPIO_InitStruct);
-
-    GPIO_InitStruct.Pin = CLK_Pin;
-    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    HAL_GPIO_Init(CLK_GPIO_Port, &GPIO_InitStruct);
-
-    HAL_Delay(100);
-
-    while (HAL_GPIO_ReadPin(CLK_GPIO_Port, CLK_Pin) != GPIO_PIN_RESET){
-    	HAL_Delay(100);
-    }
-
-    READ_DATA();
-}
-
-/*
  * Enable GPIO IR
  */
 void EXTI_Init(void) {
-    GPIO_InitTypeDef GPIO_InitStruct = {0};
-
-    // Enable clocks for GPIOA and GPIOB (Already enabled in MX_GPIO_Init )
-//    __HAL_RCC_GPIOA_CLK_ENABLE();
-//    __HAL_RCC_GPIOB_CLK_ENABLE();
-
-    // Define Pins & Ports Arrays
-    uint16_t exti_pins[] = {START_Pin, DAT_Pin, PREG_Pin, MOD_Pin};
-    GPIO_TypeDef* exti_ports[] = {START_GPIO_Port, DAT_GPIO_Port, PREG_GPIO_Port, MOD_GPIO_Port};
-
-    // Configure
-
-    //Setting up port for Rising Only Interrupt
-    for (int i = 0; i < 2; i++){
-    	GPIO_InitStruct.Pin = *(exti_pins + i);
-    	GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
-    	GPIO_InitStruct.Pull = GPIO_PULLDOWN;
-    	HAL_GPIO_Init(*(exti_ports + i), &GPIO_InitStruct);
-    }
-
-    // Setting up port for Rising & Falling Interrupt
-    for (int i = 2; i < 4; i++){
-    	GPIO_InitStruct.Pin = *(exti_pins + i); //Alternative for exti_pins[i]
-    	GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
-    	GPIO_InitStruct.Pull = GPIO_NOPULL;
-    	HAL_GPIO_Init(*(exti_ports + i), &GPIO_InitStruct); //Alternative for exti_ports[i]
-    }
-
-    // Enable NVIC for the corresponding EXTI lines
-    HAL_NVIC_SetPriority(EXTI0_IRQn, 2, 0);
-    HAL_NVIC_EnableIRQ(EXTI0_IRQn);
-
-    HAL_NVIC_SetPriority(EXTI1_IRQn, 2, 0);
-    HAL_NVIC_EnableIRQ(EXTI1_IRQn);
-
-    HAL_NVIC_SetPriority(EXTI9_5_IRQn, 2, 0);
-    HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
-}
-
-void Start_Button_Pressed(void){
-	HAL_Delay(10);
-	/*
-	 * Check if the button was intentionally press
-	 * startStatus = 1 << 0
-	 * startStatys = 1 << 1 = 2
-	 */
-	if (HAL_GPIO_ReadPin(START_GPIO_Port, START_Pin) == GPIO_PIN_SET){
-		startStatus = 1 << startStatus;
-		updateLedData(LED_START_Pin, (1 & startStatus));
-	}
-
-}
-
-void Dat_Button_Pressed(void){
-	HAL_Delay(10);
-
-	/*
-	 * Check if the button was intentionally press
-	 */
-	if (HAL_GPIO_ReadPin(DAT_GPIO_Port, DAT_Pin) == GPIO_PIN_SET){
-		datStatus = 1 << datStatus;
-		updateLedData(LED_DAT_Pin, (1 & datStatus));
-	}
-
-}
-
-void Preg_Button_Pressed(void){
-	pregStatus ^= 1;
-	updateLedData(LED_PREG_Pin, pregStatus);
-}
-
-void Mod_Button_Pressed(void){
-	modStatus ^= 1;
-	updateLedData(LED_MOD_Pin, modStatus);
+//    GPIO_InitTypeDef GPIO_InitStruct = {0};
+//
+//    // Enable clocks for GPIOA and GPIOB (Already enabled in MX_GPIO_Init )
+//    	__HAL_RCC_GPIOA_CLK_ENABLE();
+//    	__HAL_RCC_GPIOB_CLK_ENABLE();
+//
+//    // Define Pins & Ports Arrays
+//    uint16_t exti_pins[] = {START_Pin, DAT_Pin, PREG_Pin, MOD_Pin};
+//    GPIO_TypeDef* exti_ports[] = {START_GPIO_Port, DAT_GPIO_Port, PREG_GPIO_Port, MOD_GPIO_Port};
+//
+//    // Configure
+//
+//    //Setting up port for Rising Only Interrupt
+//    for (int i = 0; i < 2; i++){
+//    	GPIO_InitStruct.Pin = *(exti_pins + i);
+//    	GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+//    	GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+//    	HAL_GPIO_Init(*(exti_ports + i), &GPIO_InitStruct);
+//    }
+//
+//    // Setting up port for Rising & Falling Interrupt
+//    for (int i = 2; i < 4; i++){
+//    	GPIO_InitStruct.Pin = *(exti_pins + i); //Alternative for exti_pins[i]
+//    	GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
+//    	GPIO_InitStruct.Pull = GPIO_NOPULL;
+//    	HAL_GPIO_Init(*(exti_ports + i), &GPIO_InitStruct); //Alternative for exti_ports[i]
+//    }
+//
+//    // Enable NVIC for the corresponding EXTI lines
+//    HAL_NVIC_SetPriority(EXTI0_IRQn, 2, 0);
+//    HAL_NVIC_EnableIRQ(EXTI0_IRQn);
+//
+//    HAL_NVIC_SetPriority(EXTI1_IRQn, 2, 0);
+//    HAL_NVIC_EnableIRQ(EXTI1_IRQn);
+//
+//    HAL_NVIC_SetPriority(EXTI9_5_IRQn, 2, 0);
+//    HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
 }
 
 /*
@@ -547,18 +585,8 @@ void RD_CDA(void){
  *        - 11 (3) -> Both High
  */
 void WR_CDA(void){
-	GPIO_InitTypeDef GPIO_InitStruct = {0};
-
-	GPIO_InitStruct.Pin = CDA0_Pin | CDA1_Pin;
-	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-	GPIO_InitStruct.Pull = GPIO_NOPULL;
-	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-	HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
 	HAL_GPIO_WritePin(CDA0_GPIO_Port, CDA0_Pin, (cdaStatus & 0x01) ? GPIO_PIN_SET : GPIO_PIN_RESET);
 	HAL_GPIO_WritePin(CDA1_GPIO_Port, CDA1_Pin, (cdaStatus & 0x02) ? GPIO_PIN_SET : GPIO_PIN_RESET);
-
-	HAL_Delay(100);
 }
 
 /*
@@ -571,7 +599,6 @@ void readButtonData(void){
 	for (int i = 0; i < NUMS_BITS_DATA; i++){
 		*(dataArr + i) = HAL_GPIO_ReadPin(*(btn_ports + i), *(btn_pins + i));
 	}
-	HAL_Delay(100);
 }
 
 /*
@@ -581,13 +608,9 @@ void SEND_DATA(void){
 	uint16_t data_pins[] = DATA_PINS;
 	GPIO_TypeDef* data_ports[] = DATA_PORTS;
 
-	setPinMode(data_pins, data_ports, NUMS_BITS_DATA, GPIO_MODE_OUTPUT_PP);
-
    for (int i = 0; i < NUMS_BITS_DATA; i++) {
 		HAL_GPIO_WritePin(*(data_ports + i), * (data_pins + i), (dataArr[i] ? GPIO_PIN_SET : GPIO_PIN_RESET));
 	}
-
-   HAL_Delay(100);
 }
 
 /*
@@ -597,13 +620,9 @@ void READ_DATA(void){
 	uint16_t data_pins[] = DATA_PINS;
 	GPIO_TypeDef* data_ports[] = DATA_PORTS;
 
-	setPinMode(data_pins, data_ports, NUMS_BITS_DATA, GPIO_MODE_INPUT);
-
 	for (int i = 0; i < NUMS_BITS_DATA; i++) {
 		*(dataArr + i) = HAL_GPIO_ReadPin(*(data_ports + i), *(data_pins + i));
 	}
-
-	HAL_Delay(100);
 }
 
 /*
