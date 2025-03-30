@@ -193,33 +193,61 @@ void SystemClock_Config(void)
 static void MX_TIM2_Init(void)
 {
 
-	 	TIM_ClockConfigTypeDef sClockSourceConfig = {0};
-	    TIM_MasterConfigTypeDef sMasterConfig = {0};
+  /* USER CODE BEGIN TIM2_Init 0 */
 
-	    htim2.Instance = TIM2;
-	    htim2.Init.Prescaler = 7199; // 72MHz / (7199 + 1) = 10kHz
-	    htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-	    htim2.Init.Period = 99; // 10kHz / (99 + 1) = 100Hz (10ms)
-	    htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-	    htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  /* USER CODE END TIM2_Init 0 */
 
-	    if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
-	    {
-	        Error_Handler();
-	    }
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_SlaveConfigTypeDef sSlaveConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+  TIM_OC_InitTypeDef sConfigOC = {0};
 
-	    sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
-	    if (HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig) != HAL_OK)
-	    {
-	        Error_Handler();
-	    }
+  /* USER CODE BEGIN TIM2_Init 1 */
 
-	    sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
-	    sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-	    if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
-	    {
-	        Error_Handler();
-	    }
+  /* USER CODE END TIM2_Init 1 */
+  htim2.Instance = TIM2;
+  htim2.Init.Prescaler = 7199;
+  htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim2.Init.Period = 100;
+  htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_Init(&htim2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sSlaveConfig.SlaveMode = TIM_SLAVEMODE_DISABLE;
+  sSlaveConfig.InputTrigger = TIM_TS_ITR2;
+  if (HAL_TIM_SlaveConfigSynchro(&htim2, &sSlaveConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sConfigOC.OCMode = TIM_OCMODE_PWM1;
+  sConfigOC.Pulse = 0;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM2_Init 2 */
+
+  /* USER CODE END TIM2_Init 2 */
+  HAL_TIM_MspPostInit(&htim2);
 
 }
 
@@ -236,43 +264,49 @@ static void MX_GPIO_Init(void)
   /* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
+  __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOA, DATA0_Pin|DATA1_Pin|DATA2_Pin|DATA3_Pin
-                          |CDA0_Pin|CDA1_Pin|CLK_Pin|LED_DATA0_Pin
-                          |LED_DATA1_Pin|LED_DATA2_Pin|LED_DATA3_Pin, GPIO_PIN_RESET);
+                          |CDA0_Pin|CDA1_Pin|CLK_Pin|LED_DATA1_Pin
+                          |LED_DATA2_Pin|LED_DATA3_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, LED_MOD_Pin|LED_PREG_Pin|LED_DAT_Pin|LED_START_Pin, GPIO_PIN_RESET);
 
+  /*Configure GPIO pin : PC13 */
+  GPIO_InitStruct.Pin = GPIO_PIN_13;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
   /*Configure GPIO pins : DATA0_Pin DATA1_Pin DATA2_Pin DATA3_Pin
-                           CDA0_Pin CDA1_Pin CLK_Pin LED_DATA0_Pin
-                           LED_DATA1_Pin LED_DATA2_Pin LED_DATA3_Pin */
+                           CDA0_Pin CDA1_Pin CLK_Pin LED_DATA1_Pin
+                           LED_DATA2_Pin LED_DATA3_Pin */
   GPIO_InitStruct.Pin = DATA0_Pin|DATA1_Pin|DATA2_Pin|DATA3_Pin
-                          |CDA0_Pin|CDA1_Pin|CLK_Pin|LED_DATA0_Pin
-                          |LED_DATA1_Pin|LED_DATA2_Pin|LED_DATA3_Pin;
+                          |CDA0_Pin|CDA1_Pin|CLK_Pin|LED_DATA1_Pin
+                          |LED_DATA2_Pin|LED_DATA3_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : ACK_Pin DAT_Pin START_Pin */
-  GPIO_InitStruct.Pin = ACK_Pin|DAT_Pin|START_Pin;
+  /*Configure GPIO pins : ACK_Pin LED_DATA0_Pin */
+  GPIO_InitStruct.Pin = ACK_Pin|LED_DATA0_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pins : INPUT_DATA0_Pin INPUT_DATA1_Pin INPUT_DATA2_Pin INPUT_DATA3_Pin
-                           MOD_Pin PREG_Pin */
+                           DAT_Pin START_Pin MOD_Pin PREG_Pin */
   GPIO_InitStruct.Pin = INPUT_DATA0_Pin|INPUT_DATA1_Pin|INPUT_DATA2_Pin|INPUT_DATA3_Pin
-                          |MOD_Pin|PREG_Pin;
+                          |DAT_Pin|START_Pin|MOD_Pin|PREG_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOB
-		  , &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /*Configure GPIO pins : LED_MOD_Pin LED_PREG_Pin LED_DAT_Pin LED_START_Pin */
   GPIO_InitStruct.Pin = LED_MOD_Pin|LED_PREG_Pin|LED_DAT_Pin|LED_START_Pin;
