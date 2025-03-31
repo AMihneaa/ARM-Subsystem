@@ -321,13 +321,13 @@ void TIM2_CallBack(void){
 	switch(Q){
 		case 0:
 			if (HAL_GPIO_ReadPin(START_GPIO_Port, START_Pin) == GPIO_PIN_SET){
-				Q = 1;
+				Q = 3;
 				startStatus = 1;
 				updateLedData(LED_START_Pin, (1 & startStatus));
 			}
 
 			if (HAL_GPIO_ReadPin(DAT_GPIO_Port, DAT_Pin) == GPIO_PIN_SET){
-					Q = 3;
+					Q = 1;
 					datStatus = 1;
 					updateLedData(LED_DAT_Pin, (1 & datStatus));
 			}
@@ -345,7 +345,7 @@ void TIM2_CallBack(void){
 
 			break;
 		case 1:
-			if (HAL_GPIO_ReadPin(START_GPIO_Port, START_Pin) == GPIO_PIN_RESET){
+			if (HAL_GPIO_ReadPin(START_GPIO_Port, START_Pin) == GPIO_PIN_SET){
 				Q = 2;
 				startStatus ^= 1;
 			}
@@ -374,7 +374,7 @@ void TIM2_CallBack(void){
 				break;
 			}
 		case 3:
-			if (HAL_GPIO_ReadPin(DAT_GPIO_Port, DAT_Pin) == GPIO_PIN_RESET){
+			if (HAL_GPIO_ReadPin(DAT_GPIO_Port, DAT_Pin) == GPIO_PIN_SET){
 					Q = 4;
 					datStatus ^= 1;
 			}
