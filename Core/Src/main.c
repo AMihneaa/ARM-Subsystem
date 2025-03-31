@@ -334,7 +334,7 @@ void TIM2_CallBack(void){
 				updateLedData(LED_START_Pin, (1 & startStatus)); // Update LED status
 			}
 
-			// Check if DAT (Data) button is pressed
+			// Check if DAT button is pressed
 			if (HAL_GPIO_ReadPin(DAT_GPIO_Port, DAT_Pin) == GPIO_PIN_SET){
 				Q = 1; // Go to data signal handling state
 				datStatus = 1; // Mark that DAT was pressed
@@ -360,7 +360,7 @@ void TIM2_CallBack(void){
 			// Wait for START button to be still pressed
 			if (HAL_GPIO_ReadPin(START_GPIO_Port, START_Pin) == GPIO_PIN_SET){
 				Q = 2; // Go to START setup
-				startStatus ^= 1; // Toggle START flag
+				startStatus = 1; // Toggle START flag
 			}
 			break;
 
@@ -393,7 +393,7 @@ void TIM2_CallBack(void){
 			// Wait for DAT button to be still pressed
 			if (HAL_GPIO_ReadPin(DAT_GPIO_Port, DAT_Pin) == GPIO_PIN_SET){
 				Q = 4; // Continue flow
-				datStatus ^= 1; // Toggle DAT flag
+				datStatus = 1; // Toggle DAT flag
 			}
 			break;
 
