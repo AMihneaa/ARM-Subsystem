@@ -114,7 +114,17 @@ void Start_Button_Pressed(void);
 void Dat_Button_Pressed(void);
 void Preg_Button_Pressed(void);
 void Mod_Button_Pressed(void);
-
+void sendLED(void);
+void updateLedData(uint16_t, uint8_t);
+void ARM_WR_CDA(void);
+void ARM_WR_DATA(void);
+void ARM_RD_DATA(void);
+void RD_CDA(void);
+void WR_CDA(void);
+void SEND_DATA(void);
+void readButtonData(void);
+void READ_DATA(void);
+void setPinMode(uint16_t *, GPIO_TypeDef **, uint8_t , uint32_t);
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

@@ -77,19 +77,6 @@ static void MX_GPIO_Init(void);
 static void MX_TIM2_Init(void);
 /* USER CODE BEGIN PFP */
 void EXTI_Init();
-
-void sendLED(void);
-void updateLedData(uint16_t, uint8_t);
-void ARM_WR_CDA(void);
-void ARM_WR_DATA(void);
-void ARM_RD_DATA(void);
-void RD_CDA(void);
-void WR_CDA(void);
-void SEND_DATA(void);
-void readButtonData(void);
-void READ_DATA(void);
-void setPinMode(uint16_t *, GPIO_TypeDef **, uint8_t , uint32_t);
-
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -659,6 +646,7 @@ void READ_DATA(void){
 
 	for (int i = 0; i < NUMS_BITS_DATA; i++) {
 		*(dataArr + i) = HAL_GPIO_ReadPin(*(data_ports + i), *(data_pins + i));
+		updateLedData(*(data_pins + i), *(dataArr + i));
 	}
 }
 
