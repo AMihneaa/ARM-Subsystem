@@ -319,227 +319,287 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+
 /*
- * Check
+ * @brief Timer2 interrupt callback (every 10ms).
+ *        Handles communication protocol FSM between two MCUs.
  */
 void TIM2_CallBack(void){
-	switch(Q){
+	switch(Q){  // Finite State Machine (FSM) controller using Q as state variable
 		case 0:
+			// Check if START button is pressed
 			if (HAL_GPIO_ReadPin(START_GPIO_Port, START_Pin) == GPIO_PIN_SET){
-				Q = 3;
-				startStatus = 1;
-				updateLedData(LED_START_Pin, (1 & startStatus));
+				Q = 3; // Go to START signal handling state
+				startStatus = 1; // Mark that START was pressed
+				updateLedData(LED_START_Pin, (1 & startStatus)); // Update LED status
 			}
 
+			// Check if DAT (Data) button is pressed
 			if (HAL_GPIO_ReadPin(DAT_GPIO_Port, DAT_Pin) == GPIO_PIN_SET){
-					Q = 1;
-					datStatus = 1;
-					updateLedData(LED_DAT_Pin, (1 & datStatus));
+				Q = 1; // Go to data signal handling state
+				datStatus = 1; // Mark that DAT was pressed
+				updateLedData(LED_DAT_Pin, (1 & datStatus)); // Update LED status
 			}
 
+			// Check if PREG button toggled
 			if (HAL_GPIO_ReadPin(PREG_GPIO_Port, PREG_Pin) == GPIO_PIN_SET){
-				pregStatus = 1;
-				updateLedData(LED_PREG_Pin, pregStatus);
+				pregStatus = 1; // Set PREG status to 1
+				updateLedData(LED_PREG_Pin, pregStatus); // Update LED
 			}
 
+			// Check if MOD button toggled
 			if (HAL_GPIO_ReadPin(MOD_GPIO_Port, MOD_Pin) == GPIO_PIN_SET){
-				modStatus = 1;
-				updateLedData(LED_MOD_Pin, modStatus);
+				modStatus = 1; // Set MOD status to 1
+				updateLedData(LED_MOD_Pin, modStatus); // Update LED
 			}
-			sendLED();
 
+			sendLED(); // Update all LED outputs according to ledData[]
 			break;
+
 		case 1:
+			// Wait for START button to be still pressed
 			if (HAL_GPIO_ReadPin(START_GPIO_Port, START_Pin) == GPIO_PIN_SET){
-				Q = 2;
-				startStatus ^= 1;
+				Q = 2; // Go to START setup
+				startStatus ^= 1; // Toggle START flag
 			}
-
 			break;
+
 		case 2:
-			{
-				GPIO_InitTypeDef GPIO_InitStruct = {0};
-				GPIO_InitStruct.Pin = ACK_Pin;
-				GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-				GPIO_InitStruct.Pull = GPIO_NOPULL;
-				GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-				HAL_GPIO_Init(ACK_GPIO_Port, &GPIO_InitStruct);
+		{
+			// Set ACK pin as input
+			GPIO_InitTypeDef GPIO_InitStruct = {0};
+			GPIO_InitStruct.Pin = ACK_Pin;
+			GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+			GPIO_InitStruct.Pull = GPIO_NOPULL;
+			GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+			HAL_GPIO_Init(ACK_GPIO_Port, &GPIO_InitStruct);
 
-				GPIO_InitStruct.Pin = CLK_Pin;
-				GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-				GPIO_InitStruct.Pull = GPIO_NOPULL;
-				HAL_GPIO_Init(CLK_GPIO_Port, &GPIO_InitStruct);
+			// Set CLK pin as output
+			GPIO_InitStruct.Pin = CLK_Pin;
+			GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+			GPIO_InitStruct.Pull = GPIO_NOPULL;
+			HAL_GPIO_Init(CLK_GPIO_Port, &GPIO_InitStruct);
 
-				uint16_t data_pins[] = DATA_PINS;
-				GPIO_TypeDef* data_ports[] = DATA_PORTS;
+			// Prepare data pins as OUTPUT for transmission
+			uint16_t data_pins[] = DATA_PINS;
+			GPIO_TypeDef* data_ports[] = DATA_PORTS;
+			setPinMode(data_pins, data_ports, NUMS_BITS_DATA, GPIO_MODE_OUTPUT_PP);
 
-				setPinMode(data_pins, data_ports, NUMS_BITS_DATA, GPIO_MODE_OUTPUT_PP);
+			Q = 10; // Proceed to transmit command (CDA)
+			break;
+		}
 
-				Q = 10;
-				break;
-			}
 		case 3:
+			// Wait for DAT button to be still pressed
 			if (HAL_GPIO_ReadPin(DAT_GPIO_Port, DAT_Pin) == GPIO_PIN_SET){
-					Q = 4;
-					datStatus ^= 1;
+				Q = 4; // Continue flow
+				datStatus ^= 1; // Toggle DAT flag
 			}
-
 			break;
+
 		case 4:
+			// Decide whether to read or write based on MOD button
 			if (modStatus){
-				Q = 6;
+				Q = 6; // MOD = 1 → Read mode
 			}else{
-				Q = 5;
+				Q = 5; // MOD = 0 → Write mode
 			}
-		case 5:
-			{
-				GPIO_InitTypeDef GPIO_InitStruct = {0};
-				GPIO_InitStruct.Pin = ACK_Pin;
-				GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-				GPIO_InitStruct.Pull = GPIO_NOPULL;
-				GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-				HAL_GPIO_Init(ACK_GPIO_Port, &GPIO_InitStruct);
-
-				GPIO_InitStruct.Pin = CLK_Pin;
-				GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-				GPIO_InitStruct.Pull = GPIO_NOPULL;
-				HAL_GPIO_Init(CLK_GPIO_Port, &GPIO_InitStruct);
-
-				Q = 30;
-				break;
-			}
-		case 6:
-			{
-				GPIO_InitTypeDef GPIO_InitStruct = {0};
-				GPIO_InitStruct.Pin = ACK_Pin;
-				GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-			    GPIO_InitStruct.Pull = GPIO_NOPULL;
-			    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-				HAL_GPIO_Init(ACK_GPIO_Port, &GPIO_InitStruct);
-
-			    GPIO_InitStruct.Pin = CLK_Pin;
-			    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-			    GPIO_InitStruct.Pull = GPIO_NOPULL;
-			    HAL_GPIO_Init(CLK_GPIO_Port, &GPIO_InitStruct);
-
-				uint16_t data_pins[] = DATA_PINS;
-				GPIO_TypeDef* data_ports[] = DATA_PORTS;
-
-				setPinMode(data_pins, data_ports, NUMS_BITS_DATA, GPIO_MODE_INPUT);
-
-				Q = 60;
 			break;
-			}
-		case 10:
-			cdaStatus = 2 * pregStatus + modStatus;
 
+		case 5:
+		{
+			// Set ACK as OUTPUT
+			GPIO_InitTypeDef GPIO_InitStruct = {0};
+			GPIO_InitStruct.Pin = ACK_Pin;
+			GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+			GPIO_InitStruct.Pull = GPIO_NOPULL;
+			GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+			HAL_GPIO_Init(ACK_GPIO_Port, &GPIO_InitStruct);
+
+			// Set CLK as INPUT (will wait for clock from external device)
+			GPIO_InitStruct.Pin = CLK_Pin;
+			GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+			GPIO_InitStruct.Pull = GPIO_NOPULL;
+			HAL_GPIO_Init(CLK_GPIO_Port, &GPIO_InitStruct);
+
+			Q = 30; // Ready to transmit actual data
+			break;
+		}
+
+		case 6:
+		{
+			// Setup for reading data
+			GPIO_InitTypeDef GPIO_InitStruct = {0};
+			GPIO_InitStruct.Pin = ACK_Pin;
+			GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+			GPIO_InitStruct.Pull = GPIO_NOPULL;
+			GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+			HAL_GPIO_Init(ACK_GPIO_Port, &GPIO_InitStruct);
+
+			// Set CLK pin as OUTPUT (we will toggle it)
+			GPIO_InitStruct.Pin = CLK_Pin;
+			GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+			GPIO_InitStruct.Pull = GPIO_NOPULL;
+			HAL_GPIO_Init(CLK_GPIO_Port, &GPIO_InitStruct);
+
+			// Configure data pins as INPUT
+			uint16_t data_pins[] = DATA_PINS;
+			GPIO_TypeDef* data_ports[] = DATA_PORTS;
+			setPinMode(data_pins, data_ports, NUMS_BITS_DATA, GPIO_MODE_INPUT);
+
+			Q = 60; // Ready to receive data
+			break;
+		}
+
+		case 10:
+			// Set CDA based on MOD and PREG button states
+			cdaStatus = 2 * pregStatus + modStatus;
 			Q = 11;
 			break;
-		case 11:
-			WR_CDA();
-			HAL_GPIO_WritePin(CLK_GPIO_Port, CLK_Pin, GPIO_PIN_RESET);
 
+		case 11:
+			// Transmit CDA on 2 pins
+			WR_CDA();
+
+			// Set CLK low to signal start of transmission
+			HAL_GPIO_WritePin(CLK_GPIO_Port, CLK_Pin, GPIO_PIN_RESET);
 			Q = 12;
 			break;
-		case 12:
-			HAL_GPIO_WritePin(CLK_GPIO_Port, CLK_Pin, GPIO_PIN_SET);
 
+		case 12:
+			// Set CLK high to latch data
+			HAL_GPIO_WritePin(CLK_GPIO_Port, CLK_Pin, GPIO_PIN_SET);
 			Q = 13;
 			break;
+
 		case 13:
+			// Wait for ACK to go LOW (waiting for external device)
 			if (HAL_GPIO_ReadPin(ACK_GPIO_Port, ACK_Pin) != GPIO_PIN_SET){
 				Q = 14;
 			}
-
 			break;
+
 		case 14:
+			// Wait for ACK to go HIGH again (external device accepted command)
 			if (HAL_GPIO_ReadPin(ACK_GPIO_Port, ACK_Pin) == GPIO_PIN_SET){
-				startStatus = 0;
-				Q = 0;
+				startStatus = 0; // Reset flag
+				Q = 0; // Go back to idle
 			}
 			break;
-		case 30:
-			readButtonData();
-			SEND_DATA();
-			HAL_GPIO_WritePin(CLK_GPIO_Port, CLK_Pin, GPIO_PIN_RESET);
 
+		case 30:
+			readButtonData(); // Read 4-bit data
+			SEND_DATA();      // Send it through GPIO
+			HAL_GPIO_WritePin(CLK_GPIO_Port, CLK_Pin, GPIO_PIN_RESET); // Clock low
 			Q = 31;
 			break;
-		case 31:
-			HAL_GPIO_WritePin(CLK_GPIO_Port, CLK_Pin, GPIO_PIN_SET);
 
+		case 31:
+			HAL_GPIO_WritePin(CLK_GPIO_Port, CLK_Pin, GPIO_PIN_SET); // Clock high
 			Q = 32;
 			break;
+
 		case 32:
+			// Wait for external device to lower ACK
 			if (HAL_GPIO_ReadPin(ACK_GPIO_Port, ACK_Pin) != GPIO_PIN_SET){
 				Q = 33;
 			}
-
 			break;
+
 		case 33:
+			// Wait for external device to raise ACK back
 			if (HAL_GPIO_ReadPin(ACK_GPIO_Port, ACK_Pin) != GPIO_PIN_SET){
 				Q = 0;
-				datStatus = 0;
+				datStatus = 0; // Reset data flag
 			}
-
 			break;
+
 		case 60:
+			// Wait for CLK to go LOW (indicating start from external MCU)
 			if (HAL_GPIO_ReadPin(CLK_GPIO_Port, CLK_Pin) != GPIO_PIN_SET){
 				Q = 61;
 			}
-
 			break;
+
 		case 61:
+			// Wait for CLK to go HIGH again (indicating data ready)
 			if (HAL_GPIO_ReadPin(CLK_GPIO_Port, CLK_Pin) == GPIO_PIN_SET){
 				Q = 62;
 			}
-
 			break;
-		case 62:
-			READ_DATA();
-			HAL_GPIO_WritePin(ACK_GPIO_Port, ACK_Pin, GPIO_PIN_RESET);
 
+		case 62:
+			READ_DATA(); // Read incoming 4-bit data
+			HAL_GPIO_WritePin(ACK_GPIO_Port, ACK_Pin, GPIO_PIN_RESET); // Pull ACK low
 			Q = 63;
 			break;
+
 		case 63:
+			// Finish by pulling ACK high
 			HAL_GPIO_WritePin(ACK_GPIO_Port, ACK_Pin, GPIO_PIN_SET);
-			datStatus = 0;
-
-			Q = 0;
+			datStatus = 0; // Reset flag
+			Q = 0; // Back to idle
 			break;
-		default:
 
+		default:
+			// Safety default in case Q has invalid value
 			break;
 	}
 }
 
+
 /*
- * SET/RESET led based on ledData array
-*/
+ * @brief Updates physical LED outputs based on the `ledData[]` array.
+ *        Each element in `ledData` corresponds to an LED's ON (1) or OFF (0) state.
+ */
 void sendLED(void){
+    // Define local arrays holding pin numbers and corresponding GPIO ports for the LEDs.
     uint16_t led_pins[] = LED_PINS;
     GPIO_TypeDef* led_ports[] = LED_PORTS;
 
+    // Loop through each LED (total NUMS_LED = 8)
     for (int i = 0; i < NUMS_LED; i++) {
-           HAL_GPIO_WritePin(*(led_ports + i), *(led_pins + i), (*(ledData + i) & 1) != 0 ? GPIO_PIN_SET : GPIO_PIN_RESET);
-   }
+        /*
+         * Write to each LED pin:
+         * - If `ledData[i]` is 1 → GPIO_PIN_SET (turn LED ON)
+         * - If `ledData[i]` is 0 → GPIO_PIN_RESET (turn LED OFF)
+         * Uses pointer arithmetic to access port and pin arrays.
+         */
+        HAL_GPIO_WritePin(
+            *(led_ports + i),                  // LED GPIO port
+            *(led_pins + i),                   // LED GPIO pin
+            (*(ledData + i) & 1) != 0          // LED state: ON if value is 1, else OFF
+                ? GPIO_PIN_SET
+                : GPIO_PIN_RESET
+        );
+    }
 }
 
 /*
  * @brief Updates the `ledData[]` array for a specific LED pin.
- * @param pin: The LED pin to modify.
- * @param state: The new state (1 = ON, 0 = OFF).
+ *        This function is used to change the logical state of an LED
+ *        (used later by sendLED() to update physical output).
+ *
+ * @param pin:   The specific GPIO pin associated with the LED.
+ * @param state: Desired state for the LED (1 = ON, 0 = OFF).
  */
 void updateLedData(uint16_t pin, uint8_t state){
-	uint16_t led_pins[] = LED_PINS;
+    // Create a local array containing the list of all defined LED pins
+    uint16_t led_pins[] = LED_PINS;
 
-	for(int i = 0; i < NUMS_LED; i++){
-		if (pin == *(led_pins + i)){
-			*(ledData + i) = state;
-			break;
-		}
-	}
+    // Loop through the list of LED pins to find the matching one
+    for(int i = 0; i < NUMS_LED; i++){
+        // If the given pin matches the current pin in the array
+        if (pin == *(led_pins + i)){
+            // Update the corresponding index in ledData with the new state
+            *(ledData + i) = state;
+
+            // Exit the loop after finding the match
+            break;
+        }
+    }
 }
+
 
 /*
  * Enable GPIO IR
@@ -607,73 +667,142 @@ void RD_CDA(void){
 
 /*
  * @brief Writes data to CDA0 and CDA1 pins.
- * @details cdaStatus: 2-bit value to send (0-3)
- *        - 00 (0) -> Both Low
- *        - 01 (1) -> CDA0 High, CDA1 Low
- *        - 10 (2) -> CDA0 Low, CDA1 High
- *        - 11 (3) -> Both High
+ *
+ * @details This function uses the global variable `cdaStatus` to set the logic level
+ *          on two output pins (CDA0 and CDA1). The value of `cdaStatus` is a 2-bit number (0 to 3)
+ *          and each bit controls one of the two CDA pins:
+ *            - Bit 0 (LSB) controls CDA0
+ *            - Bit 1 controls CDA1
+ *          The pin logic is set as follows:
+ *            - 00 (0) -> CDA0 = LOW, CDA1 = LOW
+ *            - 01 (1) -> CDA0 = HIGH, CDA1 = LOW
+ *            - 10 (2) -> CDA0 = LOW, CDA1 = HIGH
+ *            - 11 (3) -> CDA0 = HIGH, CDA1 = HIGH
  */
 void WR_CDA(void){
-	HAL_GPIO_WritePin(CDA0_GPIO_Port, CDA0_Pin, (cdaStatus & 0x01) ? GPIO_PIN_SET : GPIO_PIN_RESET);
-	HAL_GPIO_WritePin(CDA1_GPIO_Port, CDA1_Pin, (cdaStatus & 0x02) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+    // Set CDA0 pin based on bit 0 of cdaStatus.
+    // If bit 0 is 1, set CDA0 HIGH; otherwise, set it LOW.
+    HAL_GPIO_WritePin(CDA0_GPIO_Port, CDA0_Pin, (cdaStatus & 0x01) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+
+    // Set CDA1 pin based on bit 1 of cdaStatus.
+    // If bit 1 is 1, set CDA1 HIGH; otherwise, set it LOW.
+    HAL_GPIO_WritePin(CDA1_GPIO_Port, CDA1_Pin, (cdaStatus & 0x02) ? GPIO_PIN_SET : GPIO_PIN_RESET);
 }
 
+
 /*
- * @brief Reads data from buttons pins and returns a 4-bit value.
+ * @brief Reads data from button input pins and stores the values in the `dataArr[]` array.
+ *
+ * @details Each button is connected to a specific pin (defined in BUTTONS_PINS and BUTTONS_PORTS).
+ *          This function loops through all 4 buttons, reads their digital state (HIGH or LOW),
+ *          and stores the result (0 or 1) in the `dataArr[]` array at the corresponding index.
+ *
+ *          The array `dataArr[]` acts as a buffer to hold the state of each input button.
+ *
+ *          - INPUT: BUTTONS_PINS[] = list of pins connected to buttons
+ *                   BUTTONS_PORTS[] = list of corresponding GPIO ports
+ *          - OUTPUT: dataArr[] = stores the state (0 or 1) for each button
  */
 void readButtonData(void){
-	uint16_t btn_pins[] = BUTTONS_PINS;
-	GPIO_TypeDef *btn_ports[] = BUTTONS_PORTS;
+    // Define the pins connected to each input button
+    uint16_t btn_pins[] = BUTTONS_PINS;
 
-	for (int i = 0; i < NUMS_BITS_DATA; i++){
-		*(dataArr + i) = HAL_GPIO_ReadPin(*(btn_ports + i), *(btn_pins + i));
-	}
+    // Define the ports where each button is connected
+    GPIO_TypeDef *btn_ports[] = BUTTONS_PORTS;
+
+    // Iterate through all input buttons (0 to NUMS_BITS_DATA - 1)
+    for (int i = 0; i < NUMS_BITS_DATA; i++){
+        // Read the state of each button pin (GPIO_PIN_SET or GPIO_PIN_RESET)
+        // and store 0 or 1 into the dataArr array
+        *(dataArr + i) = HAL_GPIO_ReadPin(*(btn_ports + i), *(btn_pins + i));
+    }
 }
 
+
 /*
- * @brief Configures DATA pins as output and writes data from `dataArr[]`
+ * @brief Configures the DATA pins as output and sends the values stored in the `dataArr[]` array.
+ *
+ * @details This function iterates over the 4 data lines (DATA0 to DATA3) and writes either
+ *          a HIGH or LOW logic level depending on the value stored in the `dataArr[]`.
+ *
+ *          - If `dataArr[i] == 1`, the corresponding GPIO pin is set to HIGH (GPIO_PIN_SET).
+ *          - If `dataArr[i] == 0`, the GPIO pin is set to LOW (GPIO_PIN_RESET).
+ *
+ *          The data pins and their corresponding ports are stored in the `DATA_PINS` and `DATA_PORTS` macros.
  */
 void SEND_DATA(void){
-	uint16_t data_pins[] = DATA_PINS;
-	GPIO_TypeDef* data_ports[] = DATA_PORTS;
+    // Array of data pin numbers (e.g., DATA0_Pin to DATA3_Pin)
+    uint16_t data_pins[] = DATA_PINS;
 
-   for (int i = 0; i < NUMS_BITS_DATA; i++) {
-		HAL_GPIO_WritePin(*(data_ports + i), * (data_pins + i), (dataArr[i] ? GPIO_PIN_SET : GPIO_PIN_RESET));
-	}
+    // Array of corresponding GPIO port pointers (e.g., GPIOA)
+    GPIO_TypeDef* data_ports[] = DATA_PORTS;
+
+    // Iterate through each data pin
+    for (int i = 0; i < NUMS_BITS_DATA; i++) {
+        // Write the logic level to the pin based on dataArr[i]
+        // If dataArr[i] is 1 → GPIO_PIN_SET (logic high)
+        // If dataArr[i] is 0 → GPIO_PIN_RESET (logic low)
+        HAL_GPIO_WritePin(*(data_ports + i), *(data_pins + i), (dataArr[i] ? GPIO_PIN_SET : GPIO_PIN_RESET));
+    }
 }
+
 
 /*
- * @brief Configures DATA pins as input and reads values into `dataArr[]`
+ * @brief Configures DATA pins as input and reads values into `dataArr[]`.
+ *
+ * @details This function reads the digital state (HIGH or LOW) of each data pin (DATA0 to DATA3)
+ *          and stores the result in the `dataArr[]` array. Additionally, it calls `updateLedData()`
+ *          for each pin to reflect the read value on the corresponding LED.
  */
 void READ_DATA(void){
-	uint16_t data_pins[] = DATA_PINS;
-	GPIO_TypeDef* data_ports[] = DATA_PORTS;
+    // Define the array of data pin numbers (e.g., DATA0_Pin to DATA3_Pin)
+    uint16_t data_pins[] = DATA_PINS;
 
-	for (int i = 0; i < NUMS_BITS_DATA; i++) {
-		*(dataArr + i) = HAL_GPIO_ReadPin(*(data_ports + i), *(data_pins + i));
-		updateLedData(*(data_pins + i), *(dataArr + i));
-	}
+    // Define the array of corresponding GPIO port pointers (e.g., GPIOA)
+    GPIO_TypeDef* data_ports[] = DATA_PORTS;
+
+    // Loop through each data pin
+    for (int i = 0; i < NUMS_BITS_DATA; i++) {
+        // Read the pin value: 1 (HIGH) or 0 (LOW)
+        *(dataArr + i) = HAL_GPIO_ReadPin(*(data_ports + i), *(data_pins + i));
+
+        // Update the LED data state to reflect the read value
+        updateLedData(*(data_pins + i), *(dataArr + i));
+    }
 }
+
 
 /*
  * @brief Configures multiple GPIO pins to a specified mode.
- * @param dataPins: Array of GPIO pins.
- * @param dataPorts: Array of corresponding GPIO ports.
- * @param numPins: Number of pins in the array.
- * @param mode: GPIO mode (e.g., GPIO_MODE_INPUT, GPIO_MODE_OUTPUT_PP).
+ *
+ * @param dataPins: Array of GPIO pins to be configured (e.g., DATA0_Pin, DATA1_Pin).
+ * @param dataPorts: Array of corresponding GPIO ports for each pin (e.g., GPIOA, GPIOB).
+ * @param numPins: Total number of pins to configure.
+ * @param mode: GPIO mode to apply (e.g., GPIO_MODE_INPUT, GPIO_MODE_OUTPUT_PP).
  */
 void setPinMode(uint16_t *dataPins, GPIO_TypeDef **dataPorts, uint8_t numPins, uint32_t mode) {
+    // Structure used to define the configuration for each GPIO pin
     GPIO_InitTypeDef GPIO_InitStruct = {0};
 
+    // Loop over each pin to apply the configuration
     for (int i = 0; i < numPins; i++) {
+        // Set the current pin from the array
         GPIO_InitStruct.Pin = dataPins[i];
-        GPIO_InitStruct.Mode = mode; // Dynamic mode (INPUT, OUTPUT, etc.)
+
+        // Set the desired mode (input/output/pull-up/etc.)
+        GPIO_InitStruct.Mode = mode;
+
+        // No internal pull-up or pull-down resistors enabled
         GPIO_InitStruct.Pull = GPIO_NOPULL;
+
+        // Set pin speed to low (sufficient for digital GPIO use)
         GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
 
+        // Apply the configuration to the corresponding port and pin
         HAL_GPIO_Init(dataPorts[i], &GPIO_InitStruct);
     }
 }
+
 
 
 
