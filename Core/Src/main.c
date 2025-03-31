@@ -258,11 +258,12 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOA, DATA0_Pin|DATA1_Pin|DATA2_Pin|DATA3_Pin
-                          |CDA0_Pin|CDA1_Pin|CLK_Pin|LED_DATA1_Pin
-                          |LED_DATA2_Pin|LED_DATA3_Pin, GPIO_PIN_RESET);
+                          |CDA0_Pin|CDA1_Pin|LED_DATA1_Pin|LED_DATA2_Pin
+                          |LED_DATA3_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, LED_MOD_Pin|LED_PREG_Pin|LED_DAT_Pin|LED_START_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, LED_RGB0_Pin|LED_RGB1_Pin|LED_MOD_Pin|LED_PREG_Pin
+                          |LED_DAT_Pin|LED_START_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : PC13 */
   GPIO_InitStruct.Pin = GPIO_PIN_13;
@@ -271,42 +272,46 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
   /*Configure GPIO pins : DATA0_Pin DATA1_Pin DATA2_Pin DATA3_Pin
-                           CDA0_Pin CDA1_Pin CLK_Pin LED_DATA1_Pin
-                           LED_DATA2_Pin LED_DATA3_Pin */
+                           CDA0_Pin CDA1_Pin LED_DATA1_Pin LED_DATA2_Pin
+                           LED_DATA3_Pin */
   GPIO_InitStruct.Pin = DATA0_Pin|DATA1_Pin|DATA2_Pin|DATA3_Pin
-                          |CDA0_Pin|CDA1_Pin|CLK_Pin|LED_DATA1_Pin
-                          |LED_DATA2_Pin|LED_DATA3_Pin;
+                          |CDA0_Pin|CDA1_Pin|LED_DATA1_Pin|LED_DATA2_Pin
+                          |LED_DATA3_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : ACK_Pin LED_DATA0_Pin */
-  GPIO_InitStruct.Pin = ACK_Pin|LED_DATA0_Pin;
+  /*Configure GPIO pins : INPUT_DATA0_Pin LED_DATA0_Pin */
+  GPIO_InitStruct.Pin = INPUT_DATA0_Pin|LED_DATA0_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : INPUT_DATA0_Pin INPUT_DATA1_Pin INPUT_DATA2_Pin INPUT_DATA3_Pin
-                           DAT_Pin START_Pin MOD_Pin PREG_Pin */
-  GPIO_InitStruct.Pin = INPUT_DATA0_Pin|INPUT_DATA1_Pin|INPUT_DATA2_Pin|INPUT_DATA3_Pin
-                          |DAT_Pin|START_Pin|MOD_Pin|PREG_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : LED_MOD_Pin LED_PREG_Pin LED_DAT_Pin LED_START_Pin */
-  GPIO_InitStruct.Pin = LED_MOD_Pin|LED_PREG_Pin|LED_DAT_Pin|LED_START_Pin;
+  /*Configure GPIO pins : LED_RGB0_Pin LED_RGB1_Pin LED_MOD_Pin LED_PREG_Pin
+                           LED_DAT_Pin LED_START_Pin */
+  GPIO_InitStruct.Pin = LED_RGB0_Pin|LED_RGB1_Pin|LED_MOD_Pin|LED_PREG_Pin
+                          |LED_DAT_Pin|LED_START_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : PA8 */
-  GPIO_InitStruct.Pin = GPIO_PIN_8;
+  /*Configure GPIO pins : INPUT_DATA1_Pin INPUT_DATA2_Pin INPUT_DATA3_Pin DAT_Pin
+                           START_Pin ACK_Pin CLK_Pin MOD_Pin
+                           PREG_Pin */
+  GPIO_InitStruct.Pin = INPUT_DATA1_Pin|INPUT_DATA2_Pin|INPUT_DATA3_Pin|DAT_Pin
+                          |START_Pin|ACK_Pin|CLK_Pin|MOD_Pin
+                          |PREG_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : LED_RGB2_Pin */
+  GPIO_InitStruct.Pin = LED_RGB2_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+  HAL_GPIO_Init(LED_RGB2_GPIO_Port, &GPIO_InitStruct);
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
 
