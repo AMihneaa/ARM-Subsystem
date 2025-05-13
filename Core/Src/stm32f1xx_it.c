@@ -217,20 +217,13 @@ void RCC_IRQHandler(void)
 void TIM2_IRQHandler(void)
 {
   /* USER CODE BEGIN TIM2_IRQn 0 */
-
-	/*
-	 * Check if the Interrupt is triggered by TIM2 flag
-	 * Reset &htim2 flag
-	 * Call a function to handle TIM2 logic
-	 */
-	if (__HAL_TIM_GET_FLAG(&htim2, TIM_FLAG_UPDATE) != RESET){
-		__HAL_TIM_CLEAR_IT(&htim2, TIM_IT_UPDATE);
-		TIM2_CallBack();
-	}
+  // Do NOT add custom logic here if you're using HAL_TIM_IRQHandler
   /* USER CODE END TIM2_IRQn 0 */
-//  HAL_TIM_IRQHandler(&htim2);
-  /* USER CODE BEGIN TIM2_IRQn 1 */
 
+  HAL_TIM_IRQHandler(&htim2);  // HAL handles the interrupt
+
+  /* USER CODE BEGIN TIM2_IRQn 1 */
+  // Optional extra logic, but not needed for standard timer use
   /* USER CODE END TIM2_IRQn 1 */
 }
 

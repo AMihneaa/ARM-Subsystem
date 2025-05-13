@@ -115,7 +115,7 @@ void Error_Handler(void);
 #define PREG_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
-void TIM2_CallBack(void);
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim);
 void Start_Button_Pressed(void);
 void Dat_Button_Pressed(void);
 void Preg_Button_Pressed(void);

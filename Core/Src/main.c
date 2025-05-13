@@ -324,20 +324,24 @@ static void MX_GPIO_Init(void)
  * @brief Timer2 interrupt callback (every 10ms).
  *        Handles communication protocol FSM between two MCUs.
  */
-void TIM2_CallBack(void){
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
+	if (htim->Instance != TIM2){
+		return ;
+	}
+
 	switch(Q){  // Finite State Machine (FSM) controller using Q as state variable
 		case 0:
 			// Check if START button is pressed
 			if (HAL_GPIO_ReadPin(START_GPIO_Port, START_Pin) == GPIO_PIN_SET){
 				Q = 3; // Go to START signal handling state
-				startStatus = 1; // Mark that START was pressed
+				startStatus = 1; // Mark that dat was pressed
 				updateLedData(LED_START_Pin, (1 & startStatus)); // Update LED status
 			}
 
 			// Check if DAT button is pressed
 			if (HAL_GPIO_ReadPin(DAT_GPIO_Port, DAT_Pin) == GPIO_PIN_SET){
 				Q = 1; // Go to data signal handling state
-				datStatus = 1; // Mark that DAT was pressed
+				datStatus = 1; // Mark that start was pressed
 				updateLedData(LED_DAT_Pin, (1 & datStatus)); // Update LED status
 			}
 
@@ -593,7 +597,6 @@ void updateLedData(uint16_t pin, uint8_t state){
         if (pin == *(led_pins + i)){
             // Update the corresponding index in ledData with the new state
             *(ledData + i) = state;
-
             // Exit the loop after finding the match
             break;
         }
@@ -787,7 +790,7 @@ void setPinMode(uint16_t *dataPins, GPIO_TypeDef **dataPorts, uint8_t numPins, u
     // Loop over each pin to apply the configuration
     for (int i = 0; i < numPins; i++) {
         // Set the current pin from the array
-        GPIO_InitStruct.Pin = dataPins[i];
+        GPIO_InitStruct.Pin = dataPins[i]; // *(dataPins + i)
 
         // Set the desired mode (input/output/pull-up/etc.)
         GPIO_InitStruct.Mode = mode;
