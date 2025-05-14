@@ -75,9 +75,6 @@ FSM logic is driven by the variable Q. Each 10 ms, depending on GPIO input state
 
 Each state updates LEDs to reflect system state and transitions automatically based on GPIO signals and conditions.
 
-## Contributing
-
-If you would like to contribute to this project, please fork the repository and submit a pull request. Contributions are welcome!
 
 ## License
 
