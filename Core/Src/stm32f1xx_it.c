@@ -217,14 +217,40 @@ void RCC_IRQHandler(void)
 void TIM2_IRQHandler(void)
 {
   /* USER CODE BEGIN TIM2_IRQn 0 */
-
+  // Do NOT add custom logic here if you're using HAL_TIM_IRQHandler
   /* USER CODE END TIM2_IRQn 0 */
-  HAL_TIM_IRQHandler(&htim2);
-  /* USER CODE BEGIN TIM2_IRQn 1 */
 
+  HAL_TIM_IRQHandler(&htim2);  // HAL handles the interrupt
+
+  /* USER CODE BEGIN TIM2_IRQn 1 */
+  // Optional extra logic, but not needed for standard timer use
   /* USER CODE END TIM2_IRQn 1 */
 }
 
 /* USER CODE BEGIN 1 */
+
+//void EXTI0_IRQHandler(void) {
+//    if (__HAL_GPIO_EXTI_GET_IT(START_Pin) != RESET) {  // Check if START triggered
+//        __HAL_GPIO_EXTI_CLEAR_IT(START_Pin);  // Clear the flag for START_Pin
+//        Start_Button_Pressed();  // Call Start Button Handler
+//    }
+//}
+//
+//void EXTI1_IRQHandler(void) {
+//	if (__HAL_GPIO_EXTI_GET_IT(DAT_Pin) != RESET){ // Check if DAT is triggered
+//		__HAL_GPIO_EXTI_CLEAR_IT(DAT_Pin); // Clear the Flag for DAT_Pin
+//		Dat_Button_Pressed(); // Call Dat Button Handler
+//	}
+//}
+//
+//void EXTI9_5_IRQHandler(void) {
+//	if (__HAL_GPIO_EXTI_GET_IT(PREG_Pin) != RESET){ // Check if PREG is triggered
+//		__HAL_GPIO_EXTI_CLEAR_IT(PREG_Pin); // Clear the flag for PREG_Pin
+//		Preg_Button_Pressed();
+//	}else if (__HAL_GPIO_EXTI_GET_IT(MOD_Pin) != RESET){ // Check if MOD is triggered
+//		__HAL_GPIO_EXTI_CLEAR_IT(MOD_Pin); // Clear the flag for MOD_Pin
+//		Mod_Button_Pressed();
+//	}
+//}
 
 /* USER CODE END 1 */
